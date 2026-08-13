@@ -1,0 +1,41 @@
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Build output
+/bin/
+/dist/
+*.exe
+*.dll
+*.so
+*.dylib
+*.test
+*.out
+
+# Coverage and profiling
+coverage/
+coverage.*
+*.prof
+*.pprof
+
+# Temporary files
+/tmp/
+*.tmp
+*.log
+
+# IDE/editor files
+.idea/
+.vscode/
+*.swp
+*.swo
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Terraform, if used for deployments
+.terraform/
+*.tfstate
+*.tfstate.*
+*.tfplan
