@@ -19,7 +19,7 @@ const (
 
 type Email struct {
 	id         ID
-	userID     user.UserID
+	userID     user.ID
 	address    Address
 	emailType  Type
 	primary    bool
@@ -31,12 +31,20 @@ type Email struct {
 
 func New(
 	id ID,
-	userID user.UserID,
+	userID user.ID,
 	address Address,
 	emailType Type,
 	primary bool,
 	now time.Time,
 ) (Email, error) {
+	if id.IsZero() {
+		return Email{}, ErrInvalidID
+	}
+
+	if userID.IsZero() {
+		return Email{}, ErrInvalidUserID
+	}
+
 	if address.IsZero() {
 		return Email{}, ErrInvalidEmailAddress
 	}
@@ -64,7 +72,7 @@ func New(
 
 func Reconstitute(
 	id ID,
-	userID user.UserID,
+	userID user.ID,
 	address Address,
 	emailType Type,
 	primary bool,

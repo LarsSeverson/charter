@@ -1,11 +1,11 @@
 package user
 
 type User struct {
-	id     UserID
+	id     ID
 	status Status
 }
 
-func New(id UserID) *User {
+func New(id ID) *User {
 	status := Pending
 
 	return &User{

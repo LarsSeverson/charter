@@ -42,3 +42,7 @@ func (id ID[Kind]) Prefix() string {
 func (id ID[Kind]) String() string {
 	return id.value.String()
 }
+
+func (id ID[Kind]) IsZero() bool {
+	return id.value.IsZero()
+}
