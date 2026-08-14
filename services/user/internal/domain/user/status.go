@@ -10,7 +10,12 @@ const (
 )
 
 func (s Status) IsValid() bool {
-	return true
+	switch s {
+	case Pending, Active, Suspended, Closed:
+		return true
+	default:
+		return false
+	}
 }
 
 func (s Status) String() string {
