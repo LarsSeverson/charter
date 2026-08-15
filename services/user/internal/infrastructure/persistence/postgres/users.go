@@ -4,7 +4,7 @@ import (
 	"context"
 	"errors"
 
-	"github.com/LarsSeverson/charter/services/user/internal/application/repository"
+	"github.com/LarsSeverson/charter/services/user/internal/application/port"
 	"github.com/LarsSeverson/charter/services/user/internal/domain/user"
 	"github.com/jackc/pgx/v5"
 )
@@ -38,7 +38,7 @@ func (r *Users) FindByID(
 		&storedStatus,
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
-		return nil, repository.ErrUserNotFound
+		return nil, port.ErrUserNotFound
 	}
 	if err != nil {
 		return nil, errors.Join(ErrFindUser, err)
@@ -102,10 +102,10 @@ func (r *Users) Update(
 	}
 
 	if result.RowsAffected() == 0 {
-		return repository.ErrUserNotFound
+		return port.ErrUserNotFound
 	}
 
 	return nil
 }
 
-var _ repository.UserRepository = (*Users)(nil)
+var _ port.UserRepository = (*Users)(nil)

@@ -2,19 +2,28 @@ package bootstrap
 
 import (
 	"context"
+	"errors"
+	"log/slog"
+	"net"
 
 	"github.com/LarsSeverson/charter/services/user/internal/application/command"
 	"github.com/LarsSeverson/charter/services/user/internal/config"
 	"github.com/LarsSeverson/charter/services/user/internal/infrastructure/persistence/postgres"
+	grpcserver "github.com/LarsSeverson/charter/services/user/internal/transport/grpc/server"
+	grpcuser "github.com/LarsSeverson/charter/services/user/internal/transport/grpc/user"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
 type App struct {
-	pool *pgxpool.Pool
-	// server
+	pool       *pgxpool.Pool
+	grpcServer *grpcserver.Server
 }
 
-func New(ctx context.Context, cfg config.Config) (*App, error) {
+func New(
+	ctx context.Context,
+	cfg config.Config,
+	logger *slog.Logger,
+) (*App, error) {
 	pool, err := postgres.Open(ctx, postgres.Config{
 		URL:      cfg.Postgres.URL,
 		MaxConns: cfg.Postgres.MaxConns,
@@ -28,18 +37,26 @@ func New(ctx context.Context, cfg config.Config) (*App, error) {
 
 	createUser := command.NewCreateUser(users)
 
-	// handler := transport.NewHandler(createUser)
-	// server, err := transport.NewServer(handler)
-	// if err != nil {
-	//     pool.Close()
-	//     return nil, errors.Join(ErrCreateServer, err)
-	// }
+	userService := grpcuser.NewService(createUser)
 
-	// Remove once createUser is passed to the handler.
-	_ = createUser
+	listener, err := net.Listen("tcp", cfg.GRPC.Address)
+	if err != nil {
+		pool.Close()
+		return nil, errors.Join(ErrCreateListener, err)
+	}
+
+	grpcServer := grpcserver.New(
+		listener,
+		userService,
+		logger,
+		grpcserver.Config{
+			ShutdownTimeout: cfg.GRPC.ShutdownTimeout,
+		},
+	)
 
 	return &App{
-		pool: pool,
+		pool:       pool,
+		grpcServer: grpcServer,
 	}, nil
 }
 

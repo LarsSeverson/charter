@@ -4,15 +4,15 @@ import (
 	"context"
 	"errors"
 
-	"github.com/LarsSeverson/charter/services/user/internal/application/repository"
+	"github.com/LarsSeverson/charter/services/user/internal/application/port"
 	"github.com/LarsSeverson/charter/services/user/internal/domain/user"
 )
 
 type CreateUser struct {
-	users repository.UserRepository
+	users port.UserRepository
 }
 
-func NewCreateUser(users repository.UserRepository) *CreateUser {
+func NewCreateUser(users port.UserRepository) *CreateUser {
 	return &CreateUser{users: users}
 }
 
