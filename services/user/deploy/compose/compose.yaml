@@ -1,0 +1,46 @@
+name: charter-user-dev
+
+x-user-image: &user-image
+  image: charter/user:dev
+
+services:
+  user:
+    <<: *user-image
+    build:
+      context: ../../../..
+      dockerfile: services/user/deploy/image/Dockerfile
+    command: [ "/app/user" ]
+    environment:
+      USER_POSTGRES_URL: postgres://user_app:user_app_development@user-db:5432/users?sslmode=disable
+    ports:
+      - "50051:50051"
+    depends_on:
+      user-migrate:
+        condition: service_completed_successfully
+
+  user-migrate:
+    <<: *user-image
+    command: [ "/app/migrate" ]
+    environment:
+      USER_POSTGRES_MIGRATION_URL: postgres://user_migrator:user_migrator_development@user-db:5432/users?sslmode=disable
+    depends_on:
+      user-db:
+        condition: service_healthy
+
+  user-db:
+    image: postgres:18.6-bookworm
+    environment:
+      POSTGRES_DB: users
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres_development
+    volumes:
+      - user-db-data:/var/lib/postgresql
+      - ./postgres/001_roles.sql:/docker-entrypoint-initdb.d/001_roles.sql:ro
+    healthcheck:
+      test: [ "CMD-SHELL", "pg_isready -U postgres -d users" ]
+      interval: 2s
+      timeout: 5s
+      retries: 15
+
+volumes:
+  user-db-data:

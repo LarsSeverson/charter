@@ -1,0 +1,14 @@
+**
+
+!gen/
+!gen/**
+
+!internal/
+!internal/**
+
+!services/
+!services/user/
+!services/user/**
+
+services/user/deploy/
+**/*_test.go

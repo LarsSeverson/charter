@@ -21,9 +21,9 @@ func main() {
 			"user service stopped",
 			slog.Any("error", err),
 		)
-	}
 
-	os.Exit(1)
+		os.Exit(1)
+	}
 }
 
 func run(logger *slog.Logger) error {

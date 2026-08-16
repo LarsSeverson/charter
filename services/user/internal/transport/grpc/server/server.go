@@ -24,7 +24,6 @@ func New(
 	logger *slog.Logger,
 	config Config,
 ) *Server {
-
 	unaryInterceptors := serverUnaryInterceptors(logger, config)
 	options := serverOptions(unaryInterceptors, config)
 	grpcServer := grpc.NewServer(options...)

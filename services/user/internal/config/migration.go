@@ -24,7 +24,7 @@ type MigrationConfig struct {
 func LoadMigration() (MigrationConfig, error) {
 	postgresURL := strings.TrimSpace(os.Getenv(postgresMigrationURLEnvKey))
 	if postgresURL == "" {
-		return MigrationConfig{}, fmt.Errorf("%s is required", postgresMaxConnsEnvKey)
+		return MigrationConfig{}, fmt.Errorf("%s is required", postgresMigrationURLEnvKey)
 	}
 
 	migrationsTable := strings.TrimSpace(os.Getenv(postgresMigrationTableEnvKey))

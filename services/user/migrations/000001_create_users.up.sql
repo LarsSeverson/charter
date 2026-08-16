@@ -9,3 +9,7 @@ create table users (
     expire_time timestamptz default null,
     purge_time timestamptz default null
 );
+
+grant select, insert, update, delete
+on table users
+to user_runtime;

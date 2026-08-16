@@ -7,9 +7,8 @@ import (
 	"os/signal"
 	"syscall"
 
+	"github.com/LarsSeverson/charter/services/user/internal/bootstrap"
 	"github.com/LarsSeverson/charter/services/user/internal/config"
-	"github.com/LarsSeverson/charter/services/user/internal/migration"
-	"github.com/LarsSeverson/charter/services/user/migrations"
 )
 
 func main() {
@@ -17,7 +16,7 @@ func main() {
 
 	if err := run(logger); err != nil {
 		logger.Error(
-			"PostgresSQL migration failed",
+			"PostgreSQL migration failed",
 			slog.Any("error", err),
 		)
 
@@ -25,7 +24,7 @@ func main() {
 	}
 }
 
-func run(logger *slog.Logger) (runErr error) {
+func run(logger *slog.Logger) error {
 	ctx, stop := signal.NotifyContext(
 		context.Background(),
 		syscall.SIGINT,
@@ -38,49 +37,5 @@ func run(logger *slog.Logger) (runErr error) {
 		return err
 	}
 
-	runner, err := migration.NewPostgres(
-		migration.PostgresConfig{
-			URL:             cfg.PostgresURL,
-			MigrationsTable: cfg.MigrationsTable,
-			StateTimeout:    cfg.StatementTimeout,
-		},
-		migrations.Files,
-	)
-	if err != nil {
-		return err
-	}
-
-	defer func() {
-		closeErr := runner.Close()
-		if closeErr == nil {
-			return
-		}
-		if runErr != nil {
-			return
-		}
-
-		runErr = closeErr
-	}()
-
-	logger.Info(
-		"applying PostgreSQL migrations",
-		slog.String("migration.table", cfg.MigrationsTable),
-	)
-
-	if err := runner.Up(ctx); err != nil {
-		return err
-	}
-
-	version, err := runner.Version()
-	if err != nil {
-		return err
-	}
-
-	logger.Info(
-		"PostgreSQL migrations applied",
-		slog.Uint64("migration.version", uint64(version.Number)),
-		slog.Bool("migration.dirty", version.Dirty),
-	)
-
-	return nil
+	return bootstrap.Migrate(ctx, cfg, logger)
 }
