@@ -14,9 +14,9 @@ type DBTX interface {
 		arguments ...any,
 	) (pgconn.CommandTag, error)
 
-	QueryRow(
+	Query(
 		ctx context.Context,
 		sql string,
-		args ...any,
-	) pgx.Row
+		arguments ...any,
+	) (pgx.Rows, error)
 }

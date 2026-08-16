@@ -6,6 +6,7 @@ import (
 
 	"github.com/LarsSeverson/charter/services/user/internal/application/port"
 	"github.com/LarsSeverson/charter/services/user/internal/domain/user"
+	"github.com/LarsSeverson/charter/services/user/internal/infrastructure/persistence/postgres/queries"
 	"github.com/jackc/pgx/v5"
 )
 
@@ -17,25 +18,19 @@ func NewUsers(db DBTX) *Users {
 	return &Users{db: db}
 }
 
-func (r *Users) FindByID(
-	ctx context.Context,
-	id user.ID,
-) (*user.User, error) {
-	const query = `
-		SELECT id, status
-		FROM users
-		WHERE id = $1
-	`
-
-	// Change this to an actual struct for the row tailored to user
-	var (
-		storedID     string
-		storedStatus string
+func (r *Users) FindByID(ctx context.Context, id user.ID) (*user.User, error) {
+	rows, err := r.db.Query(
+		ctx,
+		queries.FindUserByID,
+		id.String(),
 	)
+	if err != nil {
+		return nil, errors.Join(ErrFindUser, err)
+	}
 
-	err := r.db.QueryRow(ctx, query, id.String()).Scan(
-		&storedID,
-		&storedStatus,
+	row, err := pgx.CollectExactlyOneRow(
+		rows,
+		pgx.RowToStructByName[userRow],
 	)
 	if errors.Is(err, pgx.ErrNoRows) {
 		return nil, port.ErrUserNotFound
@@ -44,35 +39,21 @@ func (r *Users) FindByID(
 		return nil, errors.Join(ErrFindUser, err)
 	}
 
-	parsedID, err := user.ParseID(storedID)
-	if err != nil {
-		return nil, errors.Join(ErrParseUserID, err)
-	}
-
-	value, err := user.Reconstitute(parsedID, user.Status(storedStatus))
+	value, err := row.domain()
 	if err != nil {
 		return nil, errors.Join(ErrReconstituteUser, err)
 	}
 
-	return value, err
+	return value, nil
 }
 
-func (r *Users) Create(
-	ctx context.Context,
-	value *user.User,
-) error {
-	const query = `
-		INSERT INTO users (id, status)
-		VALUES ($1, $2)
-	`
-
+func (r *Users) Create(ctx context.Context, value *user.User) error {
 	_, err := r.db.Exec(
 		ctx,
-		query,
+		queries.CreateUser,
 		value.ID().String(),
 		value.Status().String(),
 	)
-	// if isConstraint
 	if err != nil {
 		return errors.Join(ErrCreateUser, err)
 	}
@@ -80,20 +61,10 @@ func (r *Users) Create(
 	return nil
 }
 
-func (r *Users) Update(
-	ctx context.Context,
-	value *user.User,
-) error {
-	const query = `
-		UPDATE users
-		SET status = $2,
-			updated_at = now()
-		WHERE id = $1
-	`
-
+func (r *Users) Update(ctx context.Context, value *user.User) error {
 	result, err := r.db.Exec(
 		ctx,
-		query,
+		queries.UpdateUser,
 		value.ID().String(),
 		value.Status().String(),
 	)

@@ -11,9 +11,9 @@ func (s *Service) CreateUser(
 	ctx context.Context,
 	req *userv1.CreateUserRequest,
 ) (*userv1.CreateUserResponse, error) {
-	// TOOD: input := GetSomeInput...
+	input := decodeCreateUser(req)
 
-	result, err := s.createUser.Handle(ctx)
+	result, err := s.createUser.Handle(ctx, input)
 	if err != nil {
 		return nil, grpcerror.Encode(err)
 	}

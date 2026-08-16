@@ -12,7 +12,6 @@ import (
 )
 
 func main() {
-	// Probably not stdout for prod. Could be a flag to determine which to use
 	logger := slog.New(
 		slog.NewJSONHandler(os.Stdout, nil),
 	)

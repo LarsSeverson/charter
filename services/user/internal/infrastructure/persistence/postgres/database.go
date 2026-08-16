@@ -8,22 +8,22 @@ import (
 )
 
 func Open(ctx context.Context, input Config) (*pgxpool.Pool, error) {
-	config, err := pgxpool.ParseConfig(input.URL)
+	poolConfig, err := pgxpool.ParseConfig(input.URL)
 	if err != nil {
 		return nil, errors.Join(ErrParseConfig, err)
 	}
 
 	if input.MaxConns > 0 {
-		config.MaxConns = input.MaxConns
+		poolConfig.MaxConns = input.MaxConns
 	}
 
 	if input.MinConns > 0 {
-		config.MinConns = input.MinConns
+		poolConfig.MinConns = input.MinConns
 	}
 
-	config.ConnConfig.RuntimeParams["application_name"] = applicationName
+	poolConfig.ConnConfig.RuntimeParams["application_name"] = applicationName
 
-	pool, err := pgxpool.NewWithConfig(ctx, config)
+	pool, err := pgxpool.NewWithConfig(ctx, poolConfig)
 	if err != nil {
 		return nil, errors.Join(ErrCreatePool, err)
 	}
