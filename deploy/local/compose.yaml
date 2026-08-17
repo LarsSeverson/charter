@@ -1,0 +1,4 @@
+name: charter-local
+
+include:
+  - services/user/deploy/local/compose.yaml
