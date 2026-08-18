@@ -3,7 +3,7 @@ package user
 import (
 	"context"
 
-	userv1 "github.com/LarsSeverson/charter/gen/internal/charter/user/v1"
+	userv1 "github.com/LarsSeverson/charter/gen/charter/user/v1"
 	"github.com/LarsSeverson/charter/services/user/internal/transport/grpc/grpcerror"
 )
 
@@ -18,5 +18,10 @@ func (s *Service) CreateUser(
 		return nil, grpcerror.Encode(err)
 	}
 
-	return encodeCreateUser(result), nil
+	output, err := encodeCreateUser(result)
+	if err != nil {
+		return nil, grpcerror.Encode(err)
+	}
+
+	return output, nil
 }

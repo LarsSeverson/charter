@@ -1,0 +1,19 @@
+syntax = "proto3";
+
+package charter.user.v1;
+
+import "internal/charter/user/v1/user.proto";
+
+option go_package = "github.com/LarsSeverson/charter/gen/charter/user/v1;userv1";
+
+service UserService {
+  rpc CreateUser(CreateUserRequest) returns (CreateUserResponse);
+}
+
+message CreateUserRequest {
+  string primary_email = 1;
+}
+
+message CreateUserResponse {
+  User user = 1;
+}
