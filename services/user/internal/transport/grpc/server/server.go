@@ -7,7 +7,7 @@ import (
 	"net"
 	"time"
 
-	userv1 "github.com/LarsSeverson/charter/gen/grpc/user/v1"
+	userv1 "github.com/LarsSeverson/charter/gen/internal/charter/user/v1"
 	"github.com/LarsSeverson/charter/services/user/internal/transport/grpc/interceptor"
 	"google.golang.org/grpc"
 )
