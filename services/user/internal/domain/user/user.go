@@ -1,22 +1,42 @@
 package user
 
+import (
+	"time"
+
+	"github.com/LarsSeverson/charter/internal/lifecycle"
+	"github.com/LarsSeverson/charter/internal/retention"
+)
+
 type User struct {
 	id     ID
 	status Status
+
+	lifecycle lifecycle.Lifecycle
+	retention retention.Retention
 }
 
-func New(id ID) (*User, error) {
+func New(id ID, now time.Time) (*User, error) {
 	if id.IsZero() {
 		return nil, ErrInvalidID
 	}
 
+	lifecycle := lifecycle.New(now)
+	retention := retention.None()
+
 	return &User{
-		id:     id,
-		status: Pending,
+		id:        id,
+		status:    Pending,
+		lifecycle: lifecycle,
+		retention: retention,
 	}, nil
 }
 
-func Reconstitute(id ID, status Status) (*User, error) {
+func Reconstitute(
+	id ID,
+	status Status,
+	lifecycle lifecycle.Lifecycle,
+	retention retention.Retention,
+) (*User, error) {
 	if id.IsZero() {
 		return nil, ErrInvalidID
 	}
@@ -26,8 +46,10 @@ func Reconstitute(id ID, status Status) (*User, error) {
 	}
 
 	return &User{
-		id:     id,
-		status: status,
+		id:        id,
+		status:    status,
+		lifecycle: lifecycle,
+		retention: retention,
 	}, nil
 }
 
