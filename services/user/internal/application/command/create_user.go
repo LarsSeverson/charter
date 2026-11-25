@@ -3,6 +3,7 @@ package command
 import (
 	"context"
 	"errors"
+	"time"
 
 	"github.com/LarsSeverson/charter/services/user/internal/application/port"
 	"github.com/LarsSeverson/charter/services/user/internal/domain/user"
@@ -29,7 +30,9 @@ func (h *CreateUser) Handle(ctx context.Context, input CreateUserInput) (CreateU
 		return CreateUserResult{}, errors.Join(ErrCreateUser, err)
 	}
 
-	value, err := user.New(id)
+	now := time.Now()
+
+	value, err := user.New(id, now)
 	if err != nil {
 		return CreateUserResult{}, errors.Join(ErrCreateUser, err)
 	}

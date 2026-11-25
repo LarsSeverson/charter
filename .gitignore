@@ -12,7 +12,8 @@
 *.dylib
 *.test
 *.out
-/.gocache/
+/.gocache*/
+/.tmp*/
 
 # Coverage and profiling
 coverage/
