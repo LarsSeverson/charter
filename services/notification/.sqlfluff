@@ -1,0 +1,8 @@
+[sqlfluff]
+dialect = postgres
+
+[sqlfluff:indentation]
+skip_indentation_in = script_content,values_clause
+
+[sqlfluff:layout:type:data_type]
+spacing_before = align:data_type:bracketed
