@@ -6,10 +6,9 @@ create table notification_events (
     kind_code       text not null references notification_kinds (code),
     actor_type      actor_type not null,
     actor_id        uuid,                     -- NULL when actor_type = 'system'
-    -- the subject's type comes from notification_kinds.subject_type
+    -- what the event is about in the producing service, e.g. a comment ID;
+    -- with source_service, finds every notification about one thing
     subject_id      text not null,
-    -- what digests batch together, e.g. 'file:f9'; null = never batched
-    group_key       text,
     -- ids and hints code needs to render and route, e.g. {"file_id": "f9"};
     -- never the source of truth
     metadata        jsonb not null,

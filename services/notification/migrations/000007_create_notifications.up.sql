@@ -3,7 +3,12 @@ create table notifications (
     id           uuid primary key,
     event_id     uuid not null references notification_events (id),
     recipient_id uuid not null,
-    reason_code  text not null references notification_reasons (code),
+    -- why the producer chose this recipient, e.g. 'mentioned', 'file_owner';
+    -- opaque to this service, only shown to the user
+    reason       text not null,
+    -- true when the recipient was targeted personally; used by preference
+    -- 'direct'
+    direct       boolean not null,
     read_at      timestamptz,
     archived_at  timestamptz,
     created_at   timestamptz not null,

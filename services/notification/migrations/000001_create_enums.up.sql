@@ -5,18 +5,12 @@ create type actor_type as enum (
 );
 
 -- How much of something a user wants to receive. 'direct' means only
--- notifications whose reason is direct (see notification_reasons.is_direct).
+-- notifications where the recipient was targeted personally (see
+-- notifications.direct).
 create type preference_level as enum (
     'all',
     'direct',
     'none'
-);
-
--- What a preference applies to: everything, a category, or a single kind.
-create type preference_scope as enum (
-    'global',
-    'category',
-    'kind'
 );
 
 -- Where a preference came from.
@@ -41,4 +35,14 @@ create type delivery_status as enum (
     'sent',
     'failed',
     'suppressed'
+);
+
+-- What decided whether a delivery is sent: the kind being mandatory, the
+-- kind's default, a user preference, or the channel being turned off
+-- platform-wide.
+create type delivery_decision as enum (
+    'mandatory',
+    'default',
+    'preference',
+    'channel_disabled'
 );
