@@ -1,6 +1,6 @@
 PROTO_ROOT := api
 GEN_ROOT := gen
-GEN_MODULE := github.com/LarsSeverson/charter/gen
+GEN_IMPORT_PREFIX := github.com/LarsSeverson/charter/gen
 
 USER_ROOT := $(PROTO_ROOT)/internal/charter/user/v1
 USER_PROTOS := \
@@ -17,7 +17,7 @@ else
 endif
 
 generate: proto
-	go -C $(GEN_ROOT) mod tidy
+	go mod tidy
 
 proto: proto-user
 
@@ -25,9 +25,9 @@ proto-user:
 	protoc \
 		--proto_path=$(PROTO_ROOT) \
 		--go_out=$(GEN_ROOT) \
-		--go_opt=module=$(GEN_MODULE) \
+		--go_opt=module=$(GEN_IMPORT_PREFIX) \
 		--go-grpc_out=$(GEN_ROOT) \
-		--go-grpc_opt=module=$(GEN_MODULE) \
+		--go-grpc_opt=module=$(GEN_IMPORT_PREFIX) \
 		$(USER_PROTOS)
 
 .PHONY: generate proto proto-user

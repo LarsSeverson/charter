@@ -4,12 +4,9 @@ FROM golang:1.26.6-bookworm AS build
 
 WORKDIR /src
 
-COPY gen/go.mod gen/go.sum ./gen/
-COPY internal/go.mod internal/go.sum ./internal/
-COPY services/user/go.mod services/user/go.sum ./services/user/
+COPY go.mod go.sum ./
 
-RUN go work init ./gen ./internal ./services/user
-# RUN go mod download
+RUN go mod download
 
 COPY gen ./gen
 COPY internal ./internal

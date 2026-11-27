@@ -1,8 +1,0 @@
-go 1.26.5
-
-use (
-	./gen
-	./internal
-	./services/auth
-	./services/user
-)
