@@ -20,12 +20,14 @@ create type preference_source as enum (
     'system'
 );
 
--- Lifecycle of a digest: collecting, being sent, done, or failed.
+-- Lifecycle of a digest: collecting, being sent, done, failed, or closed with
+-- nothing to send because everything in it was already read.
 create type digest_status as enum (
     'open',
     'sending',
     'sent',
-    'failed'
+    'failed',
+    'empty'
 );
 
 -- Lifecycle of a single delivery on a channel.
@@ -38,11 +40,12 @@ create type delivery_status as enum (
 );
 
 -- What decided whether a delivery is sent: the kind being mandatory, the
--- kind's default, a user preference, or the channel being turned off
--- platform-wide.
+-- kind's default, a user preference, the channel being turned off
+-- platform-wide, or the user having read it in the app before it was sent.
 create type delivery_decision as enum (
     'mandatory',
     'default',
     'preference',
-    'channel_disabled'
+    'channel_disabled',
+    'already_read'
 );
