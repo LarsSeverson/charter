@@ -1,9 +1,8 @@
 package postgres
 
 type Config struct {
-	URL      string
-	MaxConns int32
-	MinConns int32
+	URL             string
+	MaxConns        int32
+	MinConns        int32
+	ApplicationName string
 }
-
-const applicationName = "user-service"

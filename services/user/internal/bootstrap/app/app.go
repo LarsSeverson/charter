@@ -1,4 +1,4 @@
-package bootstrap
+package app
 
 import (
 	"context"
@@ -19,28 +19,27 @@ import (
 type App struct {
 	lifecycle       *lifecycle.Lifecycle
 	shutdownTimeout time.Duration
+	logger          *slog.Logger
 }
 
-// New builds the whole service: config, logger, adapters, use cases.
-// It performs no I/O. Connecting and listening happen in Run.
 func New() (*App, error) {
-	cfg, err := config.Load()
+	logHandler := slog.NewJSONHandler(os.Stdout, nil)
+	logger := slog.New(logHandler).With(slog.String("service.name", config.ServiceName))
+	slog.SetDefault(logger)
+
+	shutdownTimeout, err := config.LoadShutdownTimeout()
 	if err != nil {
 		return nil, err
 	}
 
-	logHandler := slog.NewJSONHandler(os.Stdout, nil)
-	logger := slog.New(logHandler)
-	slog.SetDefault(logger)
-
 	lc := lifecycle.New()
 
 	// Outbound adapters
-	pgCfg := postgres.Config{
-		URL:      cfg.Postgres.URL,
-		MaxConns: cfg.Postgres.MaxConns,
-		MinConns: cfg.Postgres.MinConns,
+	pgCfg, err := config.LoadPostgres()
+	if err != nil {
+		return nil, err
 	}
+
 	db, err := postgres.New(pgCfg)
 	if err != nil {
 		return nil, err
@@ -57,29 +56,32 @@ func New() (*App, error) {
 	// Inbound adapters
 	usersHandler := grpcusers.NewHandler(userUseCases)
 
-	server := grpcadapter.New(
-		grpcadapter.Config{
-			Address: cfg.GRPC.Address,
-		},
-		usersHandler,
-		logger,
-		lc.Fail,
-	)
+	grpcCfg, err := config.LoadGRPC()
+	if err != nil {
+		return nil, err
+	}
 
-	// Start order: db first, server last. Stop order is the reverse.
+	server := grpcadapter.New(grpcCfg, usersHandler, lc.Fail)
+
 	lc.Add(db)
 	lc.Add(server)
 
 	app := &App{
 		lifecycle:       lc,
-		shutdownTimeout: cfg.GRPC.ShutdownTimeout,
+		shutdownTimeout: shutdownTimeout,
+		logger:          logger,
 	}
 	return app, nil
 }
 
-// Run starts every component, blocks until ctx is cancelled or a
-// component fails, then stops everything in reverse order.
 func (a *App) Run(ctx context.Context) error {
+	a.logger.Info("user service starting")
+
 	err := a.lifecycle.Run(ctx, a.shutdownTimeout)
-	return err
+	if err != nil {
+		return err
+	}
+
+	a.logger.Info("user service stopped")
+	return nil
 }

@@ -3,14 +3,18 @@ package postgres
 import (
 	"context"
 	"errors"
+	"log/slog"
 
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgconn"
 	"github.com/jackc/pgx/v5/pgxpool"
 )
 
+const componentName = "postgres"
+
 type Database struct {
-	pool *pgxpool.Pool
+	pool   *pgxpool.Pool
+	logger *slog.Logger
 }
 
 func New(cfg Config) (*Database, error) {
@@ -26,23 +30,24 @@ func New(cfg Config) (*Database, error) {
 		poolConfig.MinConns = cfg.MinConns
 	}
 
-	poolConfig.ConnConfig.RuntimeParams["application_name"] = applicationName
+	poolConfig.ConnConfig.RuntimeParams["application_name"] = cfg.ApplicationName
 
 	pool, err := pgxpool.NewWithConfig(context.Background(), poolConfig)
 	if err != nil {
 		return nil, errors.Join(ErrCreatePool, err)
 	}
 
+	logger := slog.Default().With(slog.String("component", componentName))
+
 	db := &Database{
-		pool: pool,
+		pool:   pool,
+		logger: logger,
 	}
 	return db, nil
 }
 
-// Lifecycle
-
 func (d *Database) Name() string {
-	return "postgres"
+	return componentName
 }
 
 func (d *Database) Start(ctx context.Context) error {
@@ -51,11 +56,18 @@ func (d *Database) Start(ctx context.Context) error {
 		return errors.Join(ErrPingDatabase, err)
 	}
 
+	connConfig := d.pool.Config().ConnConfig
+
+	d.logger.InfoContext(
+		ctx,
+		"PostgreSQL connected",
+		slog.String("db.host", connConfig.Host),
+		slog.String("db.name", connConfig.Database),
+	)
+
 	return nil
 }
 
-// Stop closes the pool. pool.Close waits for every checked-out
-// connection to be released, so it is bounded by ctx.
 func (d *Database) Stop(ctx context.Context) error {
 	closed := make(chan struct{})
 
@@ -72,8 +84,6 @@ func (d *Database) Stop(ctx context.Context) error {
 		return err
 	}
 }
-
-// DBTX
 
 func (d *Database) Exec(
 	ctx context.Context,

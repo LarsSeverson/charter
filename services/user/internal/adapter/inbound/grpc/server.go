@@ -11,24 +11,23 @@ import (
 	"google.golang.org/grpc"
 )
 
+const componentName = "grpc"
+
 type Server struct {
 	grpcServer *grpc.Server
 	address    string
 	listener   net.Listener
 	fail       func(error)
+	logger     *slog.Logger
 }
 
-// New builds the server and registers the handlers. It performs no I/O;
-// the address is bound in Start.
-//
-// fail is called if the server stops serving unexpectedly after Start
-// has returned.
 func New(
 	config Config,
 	userService userv1.UserServiceServer,
-	logger *slog.Logger,
 	fail func(error),
 ) *Server {
+	logger := slog.Default().With(slog.String("component", componentName))
+
 	unaryInterceptors := serverUnaryInterceptors(logger, config)
 	options := serverOptions(unaryInterceptors, config)
 	grpcServer := grpc.NewServer(options...)
@@ -42,14 +41,13 @@ func New(
 		grpcServer: grpcServer,
 		address:    config.Address,
 		fail:       fail,
+		logger:     logger,
 	}
 	return server
 }
 
-// Lifecycle
-
 func (s *Server) Name() string {
-	return "grpc"
+	return componentName
 }
 
 func (s *Server) Start(ctx context.Context) error {
@@ -62,13 +60,17 @@ func (s *Server) Start(ctx context.Context) error {
 
 	s.listener = listener
 
+	s.logger.InfoContext(
+		ctx,
+		"gRPC server listening",
+		slog.String("grpc.address", listener.Addr().String()),
+	)
+
 	go s.serve()
 
 	return nil
 }
 
-// Stop drains in-flight requests. If ctx expires first, remaining
-// connections are closed forcefully.
 func (s *Server) Stop(ctx context.Context) error {
 	stopped := make(chan struct{})
 

@@ -3,6 +3,7 @@ package lifecycle
 import (
 	"context"
 	"errors"
+	"log/slog"
 	"time"
 )
 
@@ -16,11 +17,13 @@ type Lifecycle struct {
 	components  []Component
 	startCount  int
 	failChannel chan error
+	logger      *slog.Logger
 }
 
 func New() *Lifecycle {
 	l := Lifecycle{
 		failChannel: make(chan error, 1),
+		logger:      slog.Default(),
 	}
 	return &l
 }
@@ -44,6 +47,8 @@ func (l *Lifecycle) Failed() <-chan error {
 func (l *Lifecycle) Start(ctx context.Context) error {
 
 	for _, c := range l.components {
+		startedAt := time.Now()
+
 		err := c.Start(ctx)
 		if err != nil {
 			startErr := errors.Join(err, ErrComponentStart)
@@ -53,6 +58,13 @@ func (l *Lifecycle) Start(ctx context.Context) error {
 		}
 
 		l.startCount += 1
+
+		l.logger.InfoContext(
+			ctx,
+			"component started",
+			slog.String("component", c.Name()),
+			slog.Duration("duration", time.Since(startedAt)),
+		)
 	}
 
 	return nil
@@ -63,11 +75,20 @@ func (l *Lifecycle) Stop(ctx context.Context) error {
 
 	for i := l.startCount - 1; i >= 0; i -= 1 {
 		c := l.components[i]
+		stoppedAt := time.Now()
 
 		err := c.Stop(ctx)
 		if err != nil {
 			errs = append(errs, err, ErrComponentStop)
+			continue
 		}
+
+		l.logger.InfoContext(
+			ctx,
+			"component stopped",
+			slog.String("component", c.Name()),
+			slog.Duration("duration", time.Since(stoppedAt)),
+		)
 	}
 
 	l.startCount = 0
@@ -76,12 +97,6 @@ func (l *Lifecycle) Stop(ctx context.Context) error {
 	return err
 }
 
-// Run starts every component, blocks until ctx is cancelled or a
-// component reports a failure, then stops the started components in
-// reverse order.
-//
-// Stopping uses a fresh context with stopTimeout, because ctx is
-// usually already cancelled by the time shutdown begins.
 func (l *Lifecycle) Run(ctx context.Context, stopTimeout time.Duration) error {
 	startErr := l.Start(ctx)
 	if startErr != nil {

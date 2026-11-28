@@ -21,9 +21,9 @@ type SchemaVersion struct {
 }
 
 type PostgresConfig struct {
-	URL             string
-	MigrationsTable string
-	StateTimeout    time.Duration
+	URL              string
+	MigrationsTable  string
+	StatementTimeout time.Duration
 }
 
 type Postgres struct {
@@ -38,7 +38,7 @@ func NewPostgres(
 		return nil, fmt.Errorf("migration URL is required")
 	}
 
-	if cfg.StateTimeout <= time.Millisecond {
+	if cfg.StatementTimeout <= time.Millisecond {
 		return nil, fmt.Errorf("migration statement timeout must be at least one millisecond")
 	}
 
@@ -156,7 +156,7 @@ func postgresMigrationURL(cfg PostgresConfig) (string, error) {
 
 	query := value.Query()
 	query.Set("x-migrations-table", cfg.MigrationsTable)
-	query.Set("x-statement-timeout", strconv.FormatInt(cfg.StateTimeout.Milliseconds(), 10))
+	query.Set("x-statement-timeout", strconv.FormatInt(cfg.StatementTimeout.Milliseconds(), 10))
 	query.Set("x-multi-statement", "true")
 
 	value.RawQuery = query.Encode()

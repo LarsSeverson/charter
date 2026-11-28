@@ -5,6 +5,8 @@ import (
 	"os"
 	"strings"
 	"time"
+
+	"github.com/LarsSeverson/charter/services/user/internal/adapter/outbound/postgres/migrate"
 )
 
 const (
@@ -15,16 +17,10 @@ const (
 	defaultPostgresMigrationStatementTimeout = 5 * time.Minute
 )
 
-type MigrationConfig struct {
-	PostgresURL      string
-	MigrationsTable  string
-	StatementTimeout time.Duration
-}
-
-func LoadMigration() (MigrationConfig, error) {
+func LoadMigration() (migrate.PostgresConfig, error) {
 	postgresURL := strings.TrimSpace(os.Getenv(postgresMigrationURLEnvKey))
 	if postgresURL == "" {
-		return MigrationConfig{}, fmt.Errorf("%s is required", postgresMigrationURLEnvKey)
+		return migrate.PostgresConfig{}, fmt.Errorf("%s is required", postgresMigrationURLEnvKey)
 	}
 
 	migrationsTable := strings.TrimSpace(os.Getenv(postgresMigrationTableEnvKey))
@@ -34,14 +30,15 @@ func LoadMigration() (MigrationConfig, error) {
 
 	statementTime, err := loadMigrationStatementTimeout()
 	if err != nil {
-		return MigrationConfig{}, err
+		return migrate.PostgresConfig{}, err
 	}
 
-	return MigrationConfig{
-		PostgresURL:      postgresURL,
+	cfg := migrate.PostgresConfig{
+		URL:              postgresURL,
 		MigrationsTable:  migrationsTable,
 		StatementTimeout: statementTime,
-	}, nil
+	}
+	return cfg, nil
 }
 
 func loadMigrationStatementTimeout() (time.Duration, error) {

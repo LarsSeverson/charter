@@ -6,60 +6,34 @@ import (
 	"os"
 	"strconv"
 	"strings"
-	"time"
+
+	grpcadapter "github.com/LarsSeverson/charter/services/user/internal/adapter/inbound/grpc"
 )
 
 const (
-	grpcAddressEnvKey         = "USER_GRPC_ADDRESS"
-	grpcShutdownTimeoutEnvKey = "USER_GRPC_SHUTDOWN_TIMEOUT"
+	grpcAddressEnvKey = "USER_GRPC_ADDRESS"
 
-	defaultGRPCAddress         = ":50051"
-	defaultGRPCShutdownTimeout = 10 * time.Second
+	defaultGRPCAddress = ":50051"
 )
 
-type GRPCConfig struct {
-	Address         string
-	ShutdownTimeout time.Duration
-}
-
-func loadGRPC() (GRPCConfig, error) {
+func LoadGRPC() (grpcadapter.Config, error) {
 	address := strings.TrimSpace(os.Getenv(grpcAddressEnvKey))
 	if address == "" {
 		address = defaultGRPCAddress
 	}
 
-	if err := validateGRPCAddress(address); err != nil {
-		return GRPCConfig{}, invalidEnvironmentValue(
+	err := validateGRPCAddress(address)
+	if err != nil {
+		return grpcadapter.Config{}, invalidEnvironmentValue(
 			grpcAddressEnvKey,
 			err,
 		)
 	}
 
-	shutdownTimeout := defaultGRPCShutdownTimeout
-	value := strings.TrimSpace(os.Getenv(grpcShutdownTimeoutEnvKey))
-	if value != "" {
-		parsed, err := time.ParseDuration(value)
-		if err != nil {
-			return GRPCConfig{}, invalidEnvironmentValue(
-				grpcShutdownTimeoutEnvKey,
-				err,
-			)
-		}
-
-		shutdownTimeout = parsed
+	cfg := grpcadapter.Config{
+		Address: address,
 	}
-
-	if shutdownTimeout <= 0 {
-		return GRPCConfig{}, invalidEnvironmentValue(
-			grpcShutdownTimeoutEnvKey,
-			errors.New("must be greater than zero"),
-		)
-	}
-
-	return GRPCConfig{
-		Address:         address,
-		ShutdownTimeout: shutdownTimeout,
-	}, nil
+	return cfg, nil
 }
 
 func validateGRPCAddress(address string) error {

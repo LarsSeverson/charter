@@ -7,6 +7,7 @@ import (
 
 	"github.com/LarsSeverson/charter/internal/optional"
 	"github.com/LarsSeverson/charter/internal/parse"
+	"github.com/LarsSeverson/charter/services/user/internal/adapter/outbound/postgres"
 )
 
 const (
@@ -18,16 +19,10 @@ const (
 	defaultPostgresMinConns int32 = 2
 )
 
-type PostgresConfig struct {
-	URL      string
-	MaxConns int32
-	MinConns int32
-}
-
-func loadPostgres() (PostgresConfig, error) {
+func LoadPostgres() (postgres.Config, error) {
 	url := strings.TrimSpace(os.Getenv(postgresURLEnvKey))
 	if url == "" {
-		return PostgresConfig{}, ErrPostgresURLRequired
+		return postgres.Config{}, ErrPostgresURLRequired
 	}
 
 	maxConns, err := parse.Int32(
@@ -35,13 +30,13 @@ func loadPostgres() (PostgresConfig, error) {
 		optional.Some(defaultPostgresMaxConns),
 	)
 	if err != nil {
-		return PostgresConfig{}, invalidEnvironmentValue(
+		return postgres.Config{}, invalidEnvironmentValue(
 			postgresMaxConnsEnvKey,
 			err,
 		)
 	}
 	if maxConns <= 0 {
-		return PostgresConfig{}, invalidEnvironmentValue(
+		return postgres.Config{}, invalidEnvironmentValue(
 			postgresMaxConnsEnvKey,
 			errors.New("must be greater than zero"),
 		)
@@ -52,25 +47,27 @@ func loadPostgres() (PostgresConfig, error) {
 		optional.Some(defaultPostgresMinConns),
 	)
 	if err != nil {
-		return PostgresConfig{}, invalidEnvironmentValue(
+		return postgres.Config{}, invalidEnvironmentValue(
 			postgresMinConnsEnvKey,
 			err,
 		)
 	}
 	if minConns <= 0 {
-		return PostgresConfig{}, invalidEnvironmentValue(
+		return postgres.Config{}, invalidEnvironmentValue(
 			postgresMinConnsEnvKey,
 			errors.New("must be greater than zero"),
 		)
 	}
 
 	if minConns > maxConns {
-		return PostgresConfig{}, ErrInvalidPostgresPoolSize
+		return postgres.Config{}, ErrInvalidPostgresPoolSize
 	}
 
-	return PostgresConfig{
-		URL:      url,
-		MaxConns: maxConns,
-		MinConns: minConns,
-	}, nil
+	cfg := postgres.Config{
+		URL:             url,
+		MaxConns:        maxConns,
+		MinConns:        minConns,
+		ApplicationName: ServiceName,
+	}
+	return cfg, nil
 }

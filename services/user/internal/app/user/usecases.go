@@ -5,8 +5,6 @@ import (
 	"github.com/LarsSeverson/charter/services/user/internal/app/user/port"
 )
 
-// UseCases embeds each capability, so its use cases are promoted:
-// useCases.Get comes from lookup.Lookup.
 type UseCases struct {
 	lookup.Lookup
 }
