@@ -8,7 +8,7 @@ import (
 	"syscall"
 
 	"github.com/LarsSeverson/charter/services/user/internal/bootstrap"
-	"github.com/LarsSeverson/charter/services/user/internal/config"
+	"github.com/LarsSeverson/charter/services/user/internal/bootstrap/config"
 )
 
 func main() {

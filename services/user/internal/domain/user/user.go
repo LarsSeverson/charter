@@ -3,7 +3,7 @@ package user
 import (
 	"time"
 
-	"github.com/LarsSeverson/charter/internal/lifecycle"
+	"github.com/LarsSeverson/charter/internal/entity"
 	"github.com/LarsSeverson/charter/internal/retention"
 )
 
@@ -11,7 +11,7 @@ type User struct {
 	id     ID
 	status Status
 
-	lifecycle lifecycle.Lifecycle
+	lifecycle entity.Lifecycle
 	retention retention.Retention
 }
 
@@ -20,7 +20,7 @@ func New(id ID, now time.Time) (*User, error) {
 		return nil, ErrInvalidID
 	}
 
-	lifecycle := lifecycle.New(now)
+	lifecycle := entity.NewLifecycle(now)
 	retention := retention.None()
 
 	return &User{
@@ -34,7 +34,7 @@ func New(id ID, now time.Time) (*User, error) {
 func Reconstitute(
 	id ID,
 	status Status,
-	lifecycle lifecycle.Lifecycle,
+	lifecycle entity.Lifecycle,
 	retention retention.Retention,
 ) (*User, error) {
 	if id.IsZero() {

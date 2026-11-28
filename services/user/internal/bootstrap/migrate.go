@@ -4,8 +4,8 @@ import (
 	"context"
 	"log/slog"
 
-	"github.com/LarsSeverson/charter/services/user/internal/config"
-	"github.com/LarsSeverson/charter/services/user/internal/migration"
+	"github.com/LarsSeverson/charter/services/user/internal/adapter/outbound/postgres/migrate"
+	"github.com/LarsSeverson/charter/services/user/internal/bootstrap/config"
 	"github.com/LarsSeverson/charter/services/user/migrations"
 )
 
@@ -14,8 +14,8 @@ func Migrate(
 	cfg config.MigrationConfig,
 	logger *slog.Logger,
 ) (runErr error) {
-	runner, err := migration.NewPostgres(
-		migration.PostgresConfig{
+	runner, err := migrate.NewPostgres(
+		migrate.PostgresConfig{
 			URL:             cfg.PostgresURL,
 			MigrationsTable: cfg.MigrationsTable,
 			StateTimeout:    cfg.StatementTimeout,

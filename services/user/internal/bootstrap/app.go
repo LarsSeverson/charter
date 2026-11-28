@@ -3,67 +3,83 @@ package bootstrap
 import (
 	"context"
 	"log/slog"
-	"net"
+	"os"
+	"time"
 
-	"github.com/LarsSeverson/charter/services/user/internal/application/command"
-	"github.com/LarsSeverson/charter/services/user/internal/config"
-	"github.com/LarsSeverson/charter/services/user/internal/infrastructure/persistence/postgres"
-	grpcserver "github.com/LarsSeverson/charter/services/user/internal/transport/grpc/server"
-	grpcuser "github.com/LarsSeverson/charter/services/user/internal/transport/grpc/user"
-	"github.com/jackc/pgx/v5/pgxpool"
+	"github.com/LarsSeverson/charter/internal/lifecycle"
+	grpcadapter "github.com/LarsSeverson/charter/services/user/internal/adapter/inbound/grpc"
+	grpcusers "github.com/LarsSeverson/charter/services/user/internal/adapter/inbound/grpc/users"
+	"github.com/LarsSeverson/charter/services/user/internal/adapter/outbound/postgres"
+	pgusers "github.com/LarsSeverson/charter/services/user/internal/adapter/outbound/postgres/users"
+	appuser "github.com/LarsSeverson/charter/services/user/internal/app/user"
+	userport "github.com/LarsSeverson/charter/services/user/internal/app/user/port"
+	"github.com/LarsSeverson/charter/services/user/internal/bootstrap/config"
 )
 
 type App struct {
-	pool       *pgxpool.Pool
-	grpcServer *grpcserver.Server
+	lifecycle       *lifecycle.Lifecycle
+	shutdownTimeout time.Duration
 }
 
-func New(
-	ctx context.Context,
-	cfg config.Config,
-	logger *slog.Logger,
-) (*App, error) {
-	pool, err := postgres.Open(ctx, postgres.Config{
+// New builds the whole service: config, logger, adapters, use cases.
+// It performs no I/O. Connecting and listening happen in Run.
+func New() (*App, error) {
+	cfg, err := config.Load()
+	if err != nil {
+		return nil, err
+	}
+
+	logHandler := slog.NewJSONHandler(os.Stdout, nil)
+	logger := slog.New(logHandler)
+	slog.SetDefault(logger)
+
+	lc := lifecycle.New()
+
+	// Outbound adapters
+	pgCfg := postgres.Config{
 		URL:      cfg.Postgres.URL,
 		MaxConns: cfg.Postgres.MaxConns,
 		MinConns: cfg.Postgres.MinConns,
-	})
+	}
+	db, err := postgres.New(pgCfg)
 	if err != nil {
 		return nil, err
 	}
 
-	users := postgres.NewUsers(pool)
+	userRepo := pgusers.NewUsers(db)
 
-	createUser := command.NewCreateUser(users)
-
-	userService := grpcuser.NewService(createUser)
-
-	listener, err := net.Listen("tcp", cfg.GRPC.Address)
-	if err != nil {
-		pool.Close()
-		return nil, err
+	// Use cases
+	userDeps := userport.Deps{
+		Users: userRepo,
 	}
+	userUseCases := appuser.New(userDeps)
 
-	grpcServer := grpcserver.New(
-		listener,
-		userService,
-		logger,
-		grpcserver.Config{
-			ShutdownTimeout: cfg.GRPC.ShutdownTimeout,
+	// Inbound adapters
+	usersHandler := grpcusers.NewHandler(userUseCases)
+
+	server := grpcadapter.New(
+		grpcadapter.Config{
+			Address: cfg.GRPC.Address,
 		},
+		usersHandler,
+		logger,
+		lc.Fail,
 	)
 
-	return &App{
-		pool:       pool,
-		grpcServer: grpcServer,
-	}, nil
+	// Start order: db first, server last. Stop order is the reverse.
+	lc.Add(db)
+	lc.Add(server)
+
+	app := &App{
+		lifecycle:       lc,
+		shutdownTimeout: cfg.GRPC.ShutdownTimeout,
+	}
+	return app, nil
 }
 
+// Run starts every component, blocks until ctx is cancelled or a
+// component fails, then stops everything in reverse order.
 func (a *App) Run(ctx context.Context) error {
-	a.grpcServer.Run(ctx)
-	return nil
-}
-
-func (a *App) Close() {
-	a.pool.Close()
+	err := a.lifecycle.Run(ctx, a.shutdownTimeout)
+	return err
 }

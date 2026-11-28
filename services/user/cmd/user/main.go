@@ -8,47 +8,21 @@ import (
 	"syscall"
 
 	"github.com/LarsSeverson/charter/services/user/internal/bootstrap"
-	"github.com/LarsSeverson/charter/services/user/internal/config"
 )
 
 func main() {
-	logger := slog.New(
-		slog.NewJSONHandler(os.Stdout, nil),
-	)
-
-	if err := run(logger); err != nil {
-		logger.Error(
-			"user service stopped",
-			slog.Any("error", err),
-		)
-
-		os.Exit(1)
-	}
-}
-
-func run(logger *slog.Logger) error {
-	ctx, stop := signal.NotifyContext(
-		context.Background(),
-		syscall.SIGINT,
-		syscall.SIGTERM,
-	)
+	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	cfg, err := config.Load()
+	app, err := bootstrap.New()
 	if err != nil {
-		return err
+		slog.Error("user service failed to start", slog.Any("error", err))
+		os.Exit(1)
 	}
 
-	app, err := bootstrap.New(ctx, cfg, logger)
+	err = app.Run(ctx)
 	if err != nil {
-		return err
+		slog.Error("user service stopped", slog.Any("error", err))
+		os.Exit(1)
 	}
-	defer app.Close()
-
-	logger.Info(
-		"starting user service",
-		slog.String("grpc.address", cfg.GRPC.Address),
-	)
-
-	return app.Run(ctx)
 }
